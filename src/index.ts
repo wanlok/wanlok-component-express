@@ -5,8 +5,8 @@ import https from "https";
 import { pdf } from "./pdf";
 import { barChart1 } from "./barChart1";
 import { upload, uploadParams } from "./uploadHandler";
-import { certDirectory, fileUploadDirectory } from "./common/config";
-import { takeScreenshot } from "./screenshotHandler";
+import { certDirectory, fileUploadDirectory, screenshotDirectory } from "./common/config";
+import { saveScreenshot } from "./screenshotHandler";
 
 const app = express();
 
@@ -26,9 +26,10 @@ const options = {
 app.use(express.json());
 
 app.use("/files", express.static(fileUploadDirectory));
+app.use("/screenshot", express.static(screenshotDirectory));
 
 app.get("/pdf", pdf);
-app.get("/screenshot", takeScreenshot);
+app.get("/save-screenshot", saveScreenshot);
 
 app.post("/bar-chart-1", barChart1);
 app.post(`/upload`, uploadParams, upload);

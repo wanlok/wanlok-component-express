@@ -1,18 +1,24 @@
 import { Request, Response } from "express";
+import fs from "fs";
 import puppeteer from "puppeteer";
 import { browserOptions } from "./common/PuppeteerUtils";
+import { screenshotDirectory } from "./common/config";
+import path from "path";
 
-export const takeScreenshot = async (req: Request, res: Response) => {
+export const saveScreenshot = async (req: Request, res: Response) => {
+  let fileName: string | undefined = undefined;
   const url = req.query.url as string;
-  let screenshot: Uint8Array<ArrayBufferLike> | undefined = undefined;
   const browser = await puppeteer.launch(browserOptions);
   if (url && url.length > 0) {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.setViewport({ width: 1280, height: 720 });
-    screenshot = await page.screenshot();
+    if (!fs.existsSync(screenshotDirectory)) {
+      fs.mkdirSync(screenshotDirectory);
+    }
+    fileName = `${Date.now()}`;
+    await page.screenshot({ path: `${path.join(screenshotDirectory, fileName)}.png` });
   }
   await browser.close();
-  res.set("Content-Type", "image/png");
-  res.send(screenshot);
+  res.json({ url, fileName });
 };
