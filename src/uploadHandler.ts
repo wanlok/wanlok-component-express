@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import multer from "multer";
-import { fileUploadDirectory } from "./config";
+import { fileUploadDirectory } from "./common/config";
 
 interface FileInfo {
   originalName?: string;

@@ -5,8 +5,8 @@ import https from "https";
 import { pdf } from "./pdf";
 import { barChart1 } from "./barChart1";
 import { upload, uploadParams } from "./uploadHandler";
-import { certDirectory, fileUploadDirectory } from "./config";
-import { pdf2 } from "./pdfDummy";
+import { certDirectory, fileUploadDirectory } from "./common/config";
+import { takeScreenshot } from "./screenshotHandler";
 
 const app = express();
 
@@ -28,7 +28,7 @@ app.use(express.json());
 app.use("/files", express.static(fileUploadDirectory));
 
 app.get("/pdf", pdf);
-app.get("/pdf2", pdf2);
+app.get("/screenshot", takeScreenshot);
 
 app.post("/bar-chart-1", barChart1);
 app.post(`/upload`, uploadParams, upload);

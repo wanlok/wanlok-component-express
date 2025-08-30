@@ -1,11 +1,6 @@
 import { Request, Response } from "express";
-import puppeteer, { Browser, LaunchOptions, Page, PDFOptions } from "puppeteer";
-import { chromeExecutablePath } from "./config";
-
-const browserOptions: LaunchOptions = {
-  executablePath: chromeExecutablePath,
-  headless: true
-};
+import puppeteer, { Browser, Page, PDFOptions } from "puppeteer";
+import { browserOptions } from "./common/PuppeteerUtils";
 
 const pdfOptions: PDFOptions = {
   format: "A4",
