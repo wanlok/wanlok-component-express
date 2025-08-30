@@ -27,7 +27,7 @@ const getPage = async (browser: Browser, url: string) => {
   return page;
 };
 
-export const pdf = async (req: Request, res: Response) => {
+export const pdf2 = async (req: Request, res: Response) => {
   const url = req.query.url as string;
   const id = req.query.id as string;
   let page: Page | undefined = undefined;

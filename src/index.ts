@@ -5,7 +5,8 @@ import https from "https";
 import { pdf } from "./pdf";
 import { barChart1 } from "./barChart1";
 import { upload, uploadParams } from "./uploadHandler";
-import { filePath, fileUploadDirectory } from "./config";
+import { certDirectory, fileUploadDirectory } from "./config";
+import { pdf2 } from "./pdfDummy";
 
 const app = express();
 
@@ -18,15 +19,16 @@ app.use(
 );
 
 const options = {
-  key: fs.readFileSync("C:/Certbot/live/wanlok.ddns.net/privkey.pem"),
-  cert: fs.readFileSync("C:/Certbot/live/wanlok.ddns.net/fullchain.pem")
+  key: fs.readFileSync(`${certDirectory}/privkey.pem`),
+  cert: fs.readFileSync(`${certDirectory}/fullchain.pem`)
 };
 
 app.use(express.json());
 
-app.use(filePath, express.static(fileUploadDirectory));
+app.use("/files", express.static(fileUploadDirectory));
 
 app.get("/pdf", pdf);
+app.get("/pdf2", pdf2);
 
 app.post("/bar-chart-1", barChart1);
 app.post(`/upload`, uploadParams, upload);
