@@ -2,11 +2,10 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import https from "https";
-import { pdf } from "./pdf";
-import { barChart1 } from "./barChart1";
-import { upload, uploadParams } from "./uploadHandler";
 import { certDirectory, fileUploadDirectory, screenshotDirectory } from "./common/config";
-import { saveScreenshot } from "./screenshotHandler";
+import { pdf } from "./pdf";
+import { screenshot } from "./screenshotHandler";
+import { upload, uploadParams } from "./uploadHandler";
 
 const app = express();
 
@@ -29,9 +28,8 @@ app.use("/files", express.static(fileUploadDirectory));
 app.use("/screenshot", express.static(screenshotDirectory));
 
 app.get("/pdf", pdf);
-app.get("/save-screenshot", saveScreenshot);
+app.get("/save-screenshot", screenshot);
 
-app.post("/bar-chart-1", barChart1);
 app.post(`/upload`, uploadParams, upload);
 
 https.createServer(options, app).listen(443, () => {
