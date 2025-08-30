@@ -3,6 +3,7 @@ import fs from "fs";
 import multer from "multer";
 import { fileUploadDirectory } from "../common/config";
 import { randomUUID } from "crypto";
+import { getFileExtension } from "../common/FileUtils";
 
 interface FileInfo {
   id?: string;
@@ -19,9 +20,11 @@ if (!fs.existsSync(fileUploadDirectory)) {
   fs.mkdirSync(fileUploadDirectory);
 }
 
+const getFileName = (file: Express.Multer.File) => `${randomUUID()}${getFileExtension(file.mimetype)}`;
+
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, fileUploadDirectory),
-  filename: (_, file, cb) => cb(null, randomUUID())
+  filename: (_, file, cb) => cb(null, getFileName(file))
 });
 
 const fileFilter = (req: UploadRequest, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
