@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import fs from "fs";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import { browserOptions } from "./common/PuppeteerUtils";
-import { screenshotDirectory } from "./common/config";
+import { browserOptions } from "../common/PuppeteerUtils";
+import { screenshotDirectory } from "../common/config";
 import { randomUUID } from "crypto";
 import path from "path";
 

@@ -3,9 +3,9 @@ import cors from "cors";
 import fs from "fs";
 import https from "https";
 import { certDirectory, fileUploadDirectory, screenshotDirectory } from "./common/config";
-import { pdf } from "./pdf";
-import { screenshot } from "./screenshotHandler";
-import { upload, uploadParams } from "./uploadHandler";
+import { pdf } from "./handlers/pdf";
+import { screenshot } from "./handlers/screenshotHandler";
+import { upload, uploadParams } from "./handlers/uploadHandler";
 
 const app = express();
 
