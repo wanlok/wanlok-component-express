@@ -4,9 +4,10 @@ import puppeteer from "puppeteer";
 import { browserOptions } from "./common/PuppeteerUtils";
 import { screenshotDirectory } from "./common/config";
 import path from "path";
+import { randomUUID } from "crypto";
 
 export const saveScreenshot = async (req: Request, res: Response) => {
-  let fileName: string | undefined = undefined;
+  let id: string | undefined = undefined;
   const url = req.query.url as string;
   const browser = await puppeteer.launch(browserOptions);
   if (url && url.length > 0) {
@@ -16,9 +17,9 @@ export const saveScreenshot = async (req: Request, res: Response) => {
     if (!fs.existsSync(screenshotDirectory)) {
       fs.mkdirSync(screenshotDirectory);
     }
-    fileName = `${Date.now()}`;
-    await page.screenshot({ path: `${path.join(screenshotDirectory, fileName)}.png` });
+    id = randomUUID();
+    await page.screenshot({ path: `${path.join(screenshotDirectory, id)}.png` });
   }
   await browser.close();
-  res.json({ url, fileName });
+  res.json({ id, url });
 };
