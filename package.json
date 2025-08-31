@@ -1,5 +1,5 @@
 {
-  "name": "wanlok-dummy-express",
+  "name": "wanlok-component-express",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
