@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import https from "https";
-import { certDirectory, fileUploadDirectory, screenshotDirectory } from "./common/config";
+import { certDirectoryPath, fileUploadDirectoryPath, screenshotDirectoryPath } from "./common/config";
 import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
@@ -18,14 +18,14 @@ app.use(
 );
 
 const options = {
-  key: fs.readFileSync(`${certDirectory}/privkey.pem`),
-  cert: fs.readFileSync(`${certDirectory}/fullchain.pem`)
+  key: fs.readFileSync(`${certDirectoryPath}/privkey.pem`),
+  cert: fs.readFileSync(`${certDirectoryPath}/fullchain.pem`)
 };
 
 app.use(express.json());
 
-app.use("/files", express.static(fileUploadDirectory));
-app.use("/screenshot", express.static(screenshotDirectory));
+app.use("/files", express.static(fileUploadDirectoryPath));
+app.use("/screenshot", express.static(screenshotDirectoryPath));
 
 app.get("/pdf", pdf);
 app.get("/save-screenshot", screenshot);

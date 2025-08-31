@@ -21,6 +21,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "multer": "^2.0.2",
+    "p-queue": "^8.1.0",
     "pdfjs-dist": "^3.11.174",
     "puppeteer": "^24.16.2",
     "puppeteer-extra": "^3.3.6",

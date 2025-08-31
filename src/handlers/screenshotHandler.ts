@@ -4,10 +4,15 @@ import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { browserOptions } from "../common/PuppeteerUtils";
 import { crop16by9, toImages } from "../common/PDFUtils";
-import { screenshotDirectory } from "../common/config";
+import { githubScreenshotDirectoryPath, screenshotDirectoryPath } from "../common/config";
 import { randomUUID } from "crypto";
+import { commit } from "../common/FileUtils";
 
 puppeteer.use(StealthPlugin());
+
+if (!fs.existsSync(screenshotDirectoryPath)) {
+  fs.mkdirSync(screenshotDirectoryPath);
+}
 
 const getPuppeteerScreenshot = async (url: string, getImageFilePath: () => `${string}.png`) => {
   if (url.length > 0) {
@@ -25,10 +30,7 @@ export const screenshot = async (req: Request, res: Response) => {
   const response = await fetch(url);
   const contentType = response.headers.get("content-type");
   const id = randomUUID();
-  const filePath: `${string}.png` = `${screenshotDirectory}/${id}.png`;
-  if (!fs.existsSync(screenshotDirectory)) {
-    fs.mkdirSync(screenshotDirectory);
-  }
+  const filePath: `${string}.png` = `${screenshotDirectoryPath}/${id}.png`;
   if (contentType === "application/pdf") {
     await toImages(
       response,
@@ -38,5 +40,17 @@ export const screenshot = async (req: Request, res: Response) => {
   } else {
     await getPuppeteerScreenshot(url, () => filePath);
   }
+  copyToGithub(id);
   res.json({ id, url });
+};
+
+const copyToGithub = async (id: string) => {
+  try {
+    const filePath = `${screenshotDirectoryPath}/${id}.png`;
+    const newFilePath = `${githubScreenshotDirectoryPath}/${id}.png`;
+    await fs.promises.copyFile(filePath, newFilePath);
+    commit();
+  } catch (e) {
+    console.log(e);
+  }
 };

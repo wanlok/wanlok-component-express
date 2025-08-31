@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import multer from "multer";
-import { fileUploadDirectory } from "../common/config";
+import { githubFileDirectoryPath, fileUploadDirectoryPath } from "../common/config";
 import { randomUUID } from "crypto";
-import { getFileExtension, getMD5 } from "../common/FileUtils";
+import { commit, getFileExtension, getMD5 } from "../common/FileUtils";
 
 interface FileInfo {
   id?: string;
@@ -16,14 +16,14 @@ interface UploadRequest extends Request {
   fileInfoList: FileInfo[];
 }
 
-if (!fs.existsSync(fileUploadDirectory)) {
-  fs.mkdirSync(fileUploadDirectory);
+if (!fs.existsSync(fileUploadDirectoryPath)) {
+  fs.mkdirSync(fileUploadDirectoryPath);
 }
 
 const getFileName = (file: Express.Multer.File) => `${randomUUID()}${getFileExtension(file.mimetype)}`;
 
 const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, fileUploadDirectory),
+  destination: (_, __, cb) => cb(null, fileUploadDirectoryPath),
   filename: (_, file, cb) => cb(null, getFileName(file))
 });
 
@@ -52,9 +52,9 @@ export const upload = async (req: Request, res: Response) => {
   const files = (req.files as Express.Multer.File[]) || [];
   await Promise.all(
     files.map(async (file) => {
-      const filePath = `${fileUploadDirectory}/${file.filename}`;
+      const filePath = `${fileUploadDirectoryPath}/${file.filename}`;
       const md5 = await getMD5(filePath);
-      const newFilePath = `${fileUploadDirectory}/${md5}${getFileExtension(file.mimetype)}`;
+      const newFilePath = `${fileUploadDirectoryPath}/${md5}${getFileExtension(file.mimetype)}`;
       await fs.promises.rename(filePath, newFilePath);
       const fileInfo = uploadRequest.fileInfoList.find((info) => info.name === file.originalname);
       if (fileInfo) {
@@ -67,5 +67,22 @@ export const upload = async (req: Request, res: Response) => {
       fileInfo.reject_reason = "FILE_SIZE_TOO_LARGE";
     }
   }
+  copyToGithub(uploadRequest.fileInfoList);
   res.json(uploadRequest.fileInfoList);
+};
+
+const copyToGithub = async (fileInfos: FileInfo[]) => {
+  try {
+    for (const fileInfo of fileInfos) {
+      if (!fileInfo.reject_reason) {
+        const fileExtension = getFileExtension(fileInfo.mime_type);
+        const filePath = `${fileUploadDirectoryPath}/${fileInfo.id}${fileExtension}`;
+        const newFilePath = `${githubFileDirectoryPath}/${fileInfo.id}${fileExtension}`;
+        await fs.promises.copyFile(filePath, newFilePath);
+      }
+    }
+    commit();
+  } catch (e) {
+    console.log(e);
+  }
 };
