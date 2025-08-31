@@ -26,29 +26,35 @@ const getPuppeteerScreenshot = async (url: string, getImageFilePath: () => `${st
 };
 
 export const screenshot = async (req: Request, res: Response) => {
-  const url = req.query.url as string;
-  const response = await fetch(url);
-  const contentType = response.headers.get("content-type");
-  const id = randomUUID();
-  const filePath: `${string}.png` = `${screenshotDirectoryPath}/${id}.png`;
-  if (contentType === "application/pdf") {
-    await toImages(
-      response,
-      (pageNumber) => (pageNumber === 1 ? filePath : undefined),
-      (canvas) => crop16by9(canvas)
-    );
-  } else {
-    await getPuppeteerScreenshot(url, () => filePath);
+  const data: { id: string; url: string }[] = [];
+  const urls: string[] = req.body.urls;
+  for (const url of urls) {
+    const response = await fetch(url);
+    const contentType = response.headers.get("content-type");
+    const id = randomUUID();
+    const filePath: `${string}.png` = `${screenshotDirectoryPath}/${id}.png`;
+    if (contentType === "application/pdf") {
+      await toImages(
+        response,
+        (pageNumber) => (pageNumber === 1 ? filePath : undefined),
+        (canvas) => crop16by9(canvas)
+      );
+    } else {
+      await getPuppeteerScreenshot(url, () => filePath);
+    }
+    data.push({ id, url });
   }
-  copyToGithub(id);
-  res.json({ id, url });
+  copyToGithub(data);
+  res.json(data);
 };
 
-const copyToGithub = async (id: string) => {
+const copyToGithub = async (data: { id: string; url: string }[]) => {
   try {
-    const filePath = `${screenshotDirectoryPath}/${id}.png`;
-    const newFilePath = `${githubScreenshotDirectoryPath}/${id}.png`;
-    await fs.promises.copyFile(filePath, newFilePath);
+    for (const { id } of data) {
+      const filePath = `${screenshotDirectoryPath}/${id}.png`;
+      const newFilePath = `${githubScreenshotDirectoryPath}/${id}.png`;
+      await fs.promises.copyFile(filePath, newFilePath);
+    }
     commit();
   } catch (e) {
     console.log(e);

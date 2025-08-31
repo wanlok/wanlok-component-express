@@ -28,8 +28,8 @@ app.use("/files", express.static(fileUploadDirectoryPath));
 app.use("/screenshot", express.static(screenshotDirectoryPath));
 
 app.get("/pdf", pdf);
-app.get("/save-screenshot", screenshot);
 
+app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
 
 https.createServer(options, app).listen(443, () => {
