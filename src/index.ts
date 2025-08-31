@@ -3,6 +3,7 @@ import cors from "cors";
 import fs from "fs";
 import https from "https";
 import { certDirectoryPath, fileUploadDirectoryPath, screenshotDirectoryPath } from "./common/config";
+import { health } from "./handlers/healthHandler";
 import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use("/files", express.static(fileUploadDirectoryPath));
 app.use("/screenshot", express.static(screenshotDirectoryPath));
 
+app.get("/health", health);
 app.get("/pdf", pdf);
 
 app.post("/save-screenshot", screenshot);
