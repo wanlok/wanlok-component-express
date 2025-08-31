@@ -3,7 +3,7 @@ import fs from "fs";
 import multer from "multer";
 import { fileUploadDirectory } from "../common/config";
 import { randomUUID } from "crypto";
-import { getFileExtension } from "../common/FileUtils";
+import { getFileExtension, getMD5 } from "../common/FileUtils";
 
 interface FileInfo {
   id?: string;
@@ -49,12 +49,19 @@ export const uploadParams = (req: Request, res: Response, next: NextFunction) =>
 
 export const upload = async (req: Request, res: Response) => {
   const uploadRequest = req as UploadRequest;
-  for (const file of (req.files as Express.Multer.File[]) || []) {
-    const fileInfo = uploadRequest.fileInfoList.find((fileInfo) => fileInfo.name === file.originalname);
-    if (fileInfo) {
-      fileInfo.id = file.filename;
-    }
-  }
+  const files = (req.files as Express.Multer.File[]) || [];
+  await Promise.all(
+    files.map(async (file) => {
+      const filePath = `${fileUploadDirectory}/${file.filename}`;
+      const md5 = await getMD5(filePath);
+      const newFilePath = `${fileUploadDirectory}/${md5}${getFileExtension(file.mimetype)}`;
+      await fs.promises.rename(filePath, newFilePath);
+      const fileInfo = uploadRequest.fileInfoList.find((info) => info.name === file.originalname);
+      if (fileInfo) {
+        fileInfo.id = md5;
+      }
+    })
+  );
   for (const fileInfo of uploadRequest.fileInfoList) {
     if (!fileInfo.id && !fileInfo.reject_reason) {
       fileInfo.reject_reason = "FILE_SIZE_TOO_LARGE";

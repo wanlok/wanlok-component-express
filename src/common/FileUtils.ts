@@ -1,3 +1,6 @@
+import { createHash } from "crypto";
+import fs from "fs";
+
 export const getFileExtension = (mimeType: string) => {
   let fileExtension = "";
   if (mimeType === "image/jpeg") {
@@ -10,4 +13,9 @@ export const getFileExtension = (mimeType: string) => {
     fileExtension = ".webp";
   }
   return fileExtension;
+};
+
+export const getMD5 = async (filePath: string) => {
+  const buffer = await fs.promises.readFile(filePath);
+  return createHash("md5").update(buffer).digest("hex");
 };
