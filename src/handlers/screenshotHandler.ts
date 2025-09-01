@@ -5,7 +5,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { browserOptions } from "../common/PuppeteerUtils";
 import { crop16by9, toImages } from "../common/PDFUtils";
 import { githubScreenshotDirectoryPath, screenshotDirectoryPath } from "../common/config";
-import { randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { commit } from "../common/FileUtils";
 
 puppeteer.use(StealthPlugin());
@@ -31,7 +31,7 @@ export const screenshot = async (req: Request, res: Response) => {
   for (const url of urls) {
     const response = await fetch(url);
     const contentType = response.headers.get("content-type");
-    const id = randomUUID();
+    const id = createHash("md5").update(url).digest("hex");
     const filePath: `${string}.png` = `${screenshotDirectoryPath}/${id}.png`;
     if (contentType === "application/pdf") {
       await toImages(
