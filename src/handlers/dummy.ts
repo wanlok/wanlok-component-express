@@ -3,6 +3,11 @@ import { JSDOM } from "jsdom";
 import { decrypt } from "../common/SecretUtils";
 import puppeteer from "puppeteer";
 import { browserOptions } from "../common/PuppeteerUtils";
+import path, { basename } from "path";
+import os from "os";
+import fs from "fs/promises";
+import { createWriteStream } from "fs";
+import { Readable } from "stream";
 
 const getDocument = async (url: any) => {
   let document: Document | null;
@@ -53,20 +58,54 @@ const getDummy = async (urlString: string) => {
   };
 };
 
+const getDownloadFolderPath = (folderName: string) => {
+  const homeDir = os.homedir();
+  const downloadsDir = path.join(homeDir, "Downloads");
+  return path.join(downloadsDir, folderName);
+};
+
+export const save = async (folderName: string, imageUrls: (string | null)[]) => {
+  const folderPath = getDownloadFolderPath(folderName);
+
+  try {
+    await fs.mkdir(folderPath, { recursive: true });
+    console.log(`Created folder: ${folderPath}`);
+
+    for (const url of imageUrls) {
+      if (!url) continue;
+      const fileName = basename(url);
+      const filePath = path.join(folderPath, fileName);
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+
+        const stream = createWriteStream(filePath);
+        const nodeStream = Readable.fromWeb(response.body as any); // Cast to any to bypass TS mismatch
+
+        await new Promise<void>((resolve, reject) => {
+          nodeStream.on("error", reject);
+          stream.on("error", reject);
+          stream.on("finish", resolve);
+          nodeStream.pipe(stream);
+        });
+
+        console.log(`Downloaded: ${fileName}`);
+      } catch (err) {
+        console.error(`Error downloading ${url}`, err);
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to create folder: ${folderPath}`, err);
+  }
+};
+
 export const dummy = async (req: Request, res: Response) => {
   let document = await getDocument(req.query.url);
   const links = getAll(req, document);
-  if (links.length > 0) {
-    const subset = links.slice(0, 20); // Adjust range as needed
-
-    await Promise.all(
-      subset.map(async (link) => {
-        const { title, imageUrls } = await getDummy(link);
-        console.log(title, link);
-        console.log(imageUrls);
-        return { link, imageUrls };
-      })
-    );
+  for (const link of links) {
+    const { title, imageUrls } = await getDummy(link);
+    save(title, imageUrls);
   }
   res.json({ status: "OK", url: req.query.url });
 };
