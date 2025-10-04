@@ -7,6 +7,7 @@ import { health } from "./handlers/healthHandler";
 import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
+import { dummy } from "./handlers/dummy";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/screenshot", express.static(screenshotDirectoryPath));
 
 app.get("/health", health);
 app.get("/pdf", pdf);
+app.post("/dummy", dummy);
 
 app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
