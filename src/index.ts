@@ -8,6 +8,7 @@ import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
 import { dummy } from "./handlers/dummy";
+import { sendPhoneMessageHandler } from "./handlers/sendPhoneMessageHandler";
 
 const app = express();
 
@@ -35,6 +36,8 @@ app.post("/dummy", dummy);
 
 app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
+
+app.post("/send-phone-message", sendPhoneMessageHandler);
 
 https.createServer(options, app).listen(443, () => {
   console.log("Node app running securely on port 443");
