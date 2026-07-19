@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 import fs from "fs";
-import { chromium, Page } from "playwright";
+import multer from "multer";
+import { Browser, chromium, Page } from "playwright";
 import { chromeExecutablePath, vuforiaUsername, vuforiaPassword, vuforiaDebugMode } from "../utils/config";
+
+export const postParams = multer({ storage: multer.memoryStorage() }).single("image");
 
 const pageSize = 200;
 const sessionFilePath = ".vuforia-session.json";
@@ -114,27 +117,82 @@ const login = async (page: Page) => {
   await page.waitForURL((url) => url.pathname.includes("/develop/dashboard"));
 };
 
-export const vuforia = async (_req: Request, res: Response) => {
+const authenticate = async (browser: Browser) => {
+  const hasSession = fs.existsSync(sessionFilePath);
+  const context = await browser.newContext(hasSession ? { storageState: sessionFilePath } : undefined);
+  const page = await context.newPage();
+  let userId = hasSession ? await getUserId(page) : undefined;
+  if (!userId) {
+    await login(page);
+    userId = await getUserId(page);
+    if (!userId) {
+      throw new Error("Login failed");
+    }
+    await context.storageState({ path: sessionFilePath });
+  }
+  return { page, userId };
+};
+
+const createTarget = async (page: Page, databaseId: string, name: string, width: number, file: Express.Multer.File) => {
+  const response = await page.request.post(
+    "https://developer.vuforia.com/targetmanager/singleDeviceTarget/createNonCloudTarget",
+    {
+      multipart: {
+        fileData: { name: file.originalname, mimeType: file.mimetype, buffer: file.buffer },
+        projectId: databaseId,
+        name,
+        width: String(width),
+        targetType: "image"
+      }
+    }
+  );
+  return response.text();
+};
+
+export const get = async (_req: Request, res: Response) => {
   const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
   try {
-    const hasSession = fs.existsSync(sessionFilePath);
-    const context = await browser.newContext(hasSession ? { storageState: sessionFilePath } : undefined);
-    const page = await context.newPage();
-    let userId = hasSession ? await getUserId(page) : undefined;
-    if (!userId) {
-      await login(page);
-      userId = await getUserId(page);
-      if (!userId) {
-        throw new Error("Login failed");
-      }
-      await context.storageState({ path: sessionFilePath });
-    }
+    const { page, userId } = await authenticate(browser);
     const databaseId = await getDatabaseId(page, userId, "banknotesReader");
     if (!databaseId) {
       throw new Error("Database not found: banknotesReader");
     }
     const targets = await getTargets(page, userId, databaseId);
     res.json({ status: "ok", data: targets });
+  } catch (e) {
+    res.status(500);
+    res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
+  } finally {
+    await browser.close();
+  }
+};
+
+export const post = async (req: Request, res: Response) => {
+  const { name, width } = req.body || {};
+  if (!name) {
+    res.status(400);
+    res.json({ status: "error", message: "Missing name" });
+    return;
+  }
+  if (!width || isNaN(Number(width))) {
+    res.status(400);
+    res.json({ status: "error", message: "Missing or invalid width" });
+    return;
+  }
+  if (!req.file) {
+    res.status(400);
+    res.json({ status: "error", message: "Missing image" });
+    return;
+  }
+  const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
+  try {
+    const { page, userId } = await authenticate(browser);
+    const databaseId = await getDatabaseId(page, userId, "banknotesReader");
+    if (!databaseId) {
+      throw new Error("Database not found: banknotesReader");
+    }
+    const message = await createTarget(page, databaseId, name, Number(width), req.file);
+    res.json({ status: "ok", message });
   } catch (e) {
     res.status(500);
     res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });

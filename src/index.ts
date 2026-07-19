@@ -7,7 +7,7 @@ import { health } from "./handlers/healthHandler";
 import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
-import { vuforia } from "./handlers/vuforiaHandler";
+import { get as vuforiaGet, post as vuforiaPost, postParams as vuforiaPostParams } from "./handlers/vuforiaHandler";
 
 const app = express();
 
@@ -31,10 +31,11 @@ app.use("/screenshot", express.static(screenshotDirectoryPath));
 
 app.get("/health", health);
 app.get("/pdf", pdf);
-app.get("/vuforia", vuforia);
+app.get("/vuforia", vuforiaGet);
 
 app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
+app.post("/vuforia", vuforiaPostParams, vuforiaPost);
 
 https.createServer(options, app).listen(443, () => {
   console.log("Node app running securely on port 443");
