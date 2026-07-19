@@ -7,6 +7,7 @@ import { Handler } from "../utils/types";
 
 const postParams = multer({ storage: multer.memoryStorage() }).single("image");
 
+const baseUrl = "https://developer.vuforia.com";
 const pageSize = 200;
 const sessionFilePath = ".vuforia-session.json";
 const typingDelay = vuforiaDebugMode ? 100 : 0;
@@ -29,9 +30,8 @@ interface Target {
 }
 
 const getUserId = async (page: Page) => {
-  const text = await (
-    await page.request.get("https://developer.vuforia.com/targetmanager/vuforiaUtil/getLoggedInUser")
-  ).text();
+  const url = `${baseUrl}/targetmanager/vuforiaUtil/getLoggedInUser`;
+  const text = await (await page.request.get(url)).text();
   if (!text) {
     return undefined;
   }
@@ -40,8 +40,9 @@ const getUserId = async (page: Page) => {
 };
 
 const getDatabaseId = async (page: Page, userId: string, databaseName: string) => {
+  const url = `${baseUrl}/targetmanager/project/databases`;
   const databases: { list: Database[] } = await (
-    await page.request.post("https://developer.vuforia.com/targetmanager/project/databases", {
+    await page.request.post(url, {
       data: {
         page: 1,
         count: 25,
@@ -58,8 +59,9 @@ const getDatabaseId = async (page: Page, userId: string, databaseName: string) =
 };
 
 const getTargetsPage = async (page: Page, userId: string, databaseId: string, displayStart: number) => {
+  const url = `${baseUrl}/targetmanager/project/userDeviceTargetDisplayListing`;
   const response: { aaData: Target[]; iTotalRecords: number } = await (
-    await page.request.post("https://developer.vuforia.com/targetmanager/project/userDeviceTargetDisplayListing", {
+    await page.request.post(url, {
       data: {
         dataToBeShownForUser: userId,
         sEcho: 1,
@@ -127,7 +129,7 @@ const getTargetId = async (page: Page, userId: string, databaseId: string, targe
 };
 
 const login = async (page: Page) => {
-  const url = "https://developer.vuforia.com/auth/login";
+  const url = `${baseUrl}/auth/login`;
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.locator("#onetrust-accept-btn-handler").click();
   await delay(page, 1000);
@@ -136,7 +138,7 @@ const login = async (page: Page) => {
   await page.locator("#login_password").pressSequentially(vuforiaPassword, { delay: typingDelay });
   await delay(page, 1000);
   await page.locator("#login").click();
-  await page.waitForURL((url) => url.pathname.includes("/develop/dashboard"));
+  await page.waitForURL(`${baseUrl}/develop/dashboard`);
 };
 
 const authenticate = async (browser: Browser) => {
@@ -156,35 +158,31 @@ const authenticate = async (browser: Browser) => {
 };
 
 const createTarget = async (page: Page, databaseId: string, name: string, width: number, file: Express.Multer.File) => {
-  const response = await page.request.post(
-    "https://developer.vuforia.com/targetmanager/singleDeviceTarget/createNonCloudTarget",
-    {
-      multipart: {
-        fileData: { name: file.originalname, mimeType: file.mimetype, buffer: file.buffer },
-        projectId: databaseId,
-        name,
-        width: String(width),
-        targetType: "image"
-      }
+  const url = `${baseUrl}/targetmanager/singleDeviceTarget/createNonCloudTarget`;
+  const response = await page.request.post(url, {
+    multipart: {
+      fileData: { name: file.originalname, mimeType: file.mimetype, buffer: file.buffer },
+      projectId: databaseId,
+      name,
+      width: String(width),
+      targetType: "image"
     }
-  );
+  });
   return response.text();
 };
 
 const deleteTargets = async (page: Page, databaseId: string, databaseName: string, targetIds: string[]) => {
-  const response = await page.request.post(
-    "https://developer.vuforia.com/targetmanager/project/deleteDatabaseTargets",
-    {
-      multipart: {
-        device_target_listing: "device_target_listing",
-        project_id_device: databaseId,
-        typeDevice: "NON_CLOUD",
-        projectNameDevice: databaseName,
-        project_status: "",
-        TARGET_IDS: targetIds.map((targetId) => `${targetId}::`).join("")
-      }
+  const url = `${baseUrl}/targetmanager/project/deleteDatabaseTargets`;
+  const response = await page.request.post(url, {
+    multipart: {
+      device_target_listing: "device_target_listing",
+      project_id_device: databaseId,
+      typeDevice: "NON_CLOUD",
+      projectNameDevice: databaseName,
+      project_status: "",
+      TARGET_IDS: targetIds.map((targetId) => `${targetId}::`).join("")
     }
-  );
+  });
   return response.text();
 };
 
