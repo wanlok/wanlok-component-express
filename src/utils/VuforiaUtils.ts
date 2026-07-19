@@ -3,20 +3,13 @@ import { Browser, Page } from "playwright";
 import { vuforiaUsername, vuforiaPassword, vuforiaDebugMode } from "./config";
 
 export const baseUrl = "https://developer.vuforia.com";
-
 const pageSize = 200;
 const sessionFilePath = ".vuforia-session.json";
 const typingDelay = vuforiaDebugMode ? 100 : 0;
 
-export const delay = async (page: Page, ms: number) => {
-  if (vuforiaDebugMode) {
-    await page.waitForTimeout(ms);
-  }
-};
-
 interface Database {
-  project_name: string;
   project_id: string;
+  project_name: string;
 }
 
 export interface Target {
@@ -30,6 +23,12 @@ export interface FileInput {
   mimetype: string;
   buffer: Buffer;
 }
+
+export const delay = async (page: Page, ms: number) => {
+  if (vuforiaDebugMode) {
+    await page.waitForTimeout(ms);
+  }
+};
 
 export const getUserId = async (page: Page) => {
   const url = `${baseUrl}/targetmanager/vuforiaUtil/getLoggedInUser`;
