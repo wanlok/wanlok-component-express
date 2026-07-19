@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { chromium, Page } from "playwright";
+import { Browser, chromium, Page } from "playwright";
 import { chromeExecutablePath, vuforiaDebugMode } from "../utils/config";
 import { Handler } from "../utils/types";
 import {
@@ -19,11 +19,19 @@ interface Banknote {
   height: number;
 }
 
-const getBanknotes = async (page: Page) => {
+const getBanknotes = async (browser: Browser) => {
+  const page = await browser.newPage();
   const url = "https://wanlok.github.io/#/api/banknotes";
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => document.body.innerText.trim().length > 0);
+  await page.waitForFunction(() => {
+    try {
+      return Object.keys(JSON.parse(document.body.innerText)).length > 0;
+    } catch {
+      return false;
+    }
+  });
   const text = await page.evaluate(() => document.body.innerText);
+  await page.close();
   const banknotes: Record<string, Banknote> = JSON.parse(text);
   return Object.values(banknotes);
 };
@@ -40,8 +48,8 @@ const vuforiaSyncHandler = {
   get: async (_req: Request, res: Response) => {
     const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
     try {
+      const banknotes = await getBanknotes(browser);
       const { page, userId } = await authenticate(browser);
-      const banknotes = await getBanknotes(page);
       const databaseName = "banknotesReader";
       const databaseId = await getDatabaseId(page, userId, databaseName);
       if (!databaseId) {
