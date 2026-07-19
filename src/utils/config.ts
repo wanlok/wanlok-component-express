@@ -12,3 +12,4 @@ export const githubScreenshotDirectoryPath =
   `${process.env.GITHUB_DIRECTORY_PATH}${process.env.GITHUB_SCREENSHOT_DIRECTORY_PATH}` || "";
 export const vuforiaUsername = process.env.VUFORIA_USERNAME || "";
 export const vuforiaPassword = process.env.VUFORIA_PASSWORD || "";
+export const vuforiaDebugMode = process.env.VUFORIA_DEBUG_MODE === "true";
