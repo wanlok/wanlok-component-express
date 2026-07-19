@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
+import fs from "fs";
 import { chromium, Page } from "playwright";
 import { chromeExecutablePath, vuforiaUsername, vuforiaPassword, vuforiaDebugMode } from "../utils/config";
 
 const pageSize = 200;
+const sessionFilePath = ".vuforia-session.json";
 const typingDelay = vuforiaDebugMode ? 100 : 0;
 
 const delay = async (page: Page, ms: number) => {
@@ -22,10 +24,14 @@ interface Target {
 }
 
 const getUserId = async (page: Page) => {
-  const user = await (
+  const text = await (
     await page.request.get("https://developer.vuforia.com/targetmanager/vuforiaUtil/getLoggedInUser")
-  ).json();
-  return String(user.userId);
+  ).text();
+  if (!text) {
+    return undefined;
+  }
+  const user = JSON.parse(text);
+  return user.userId ? String(user.userId) : undefined;
 };
 
 const getDatabaseId = async (page: Page, userId: string, databaseName: string) => {
@@ -111,9 +117,18 @@ const login = async (page: Page) => {
 export const vuforia = async (_req: Request, res: Response) => {
   const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
   try {
-    const page = await browser.newPage();
-    await login(page);
-    const userId = await getUserId(page);
+    const hasSession = fs.existsSync(sessionFilePath);
+    const context = await browser.newContext(hasSession ? { storageState: sessionFilePath } : undefined);
+    const page = await context.newPage();
+    let userId = hasSession ? await getUserId(page) : undefined;
+    if (!userId) {
+      await login(page);
+      userId = await getUserId(page);
+      if (!userId) {
+        throw new Error("Login failed");
+      }
+      await context.storageState({ path: sessionFilePath });
+    }
     const databaseId = await getDatabaseId(page, userId, "banknotesReader");
     if (!databaseId) {
       throw new Error("Database not found: banknotesReader");
