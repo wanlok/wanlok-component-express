@@ -3,8 +3,9 @@ import fs from "fs";
 import multer from "multer";
 import { Browser, chromium, Page } from "playwright";
 import { chromeExecutablePath, vuforiaUsername, vuforiaPassword, vuforiaDebugMode } from "../utils/config";
+import { Handler } from "../utils/types";
 
-export const postParams = multer({ storage: multer.memoryStorage() }).single("image");
+const postParams = multer({ storage: multer.memoryStorage() }).single("image");
 
 const pageSize = 200;
 const sessionFilePath = ".vuforia-session.json";
@@ -22,6 +23,7 @@ interface Database {
 }
 
 interface Target {
+  target_id: string;
   target_name: string;
   image_url: string;
 }
@@ -84,7 +86,11 @@ const getTargetsPage = async (page: Page, userId: string, databaseId: string, di
     })
   ).json();
   return {
-    targets: response.aaData.map((target) => ({ target_name: target.target_name, image_url: target.image_url })),
+    targets: response.aaData.map((target) => ({
+      target_id: target.target_id,
+      target_name: target.target_name,
+      image_url: target.image_url
+    })),
     iTotalRecords: response.iTotalRecords
   };
 };
@@ -102,6 +108,22 @@ const getTargets = async (page: Page, userId: string, databaseId: string) => {
     await delay(page, 1000);
   }
   return targets;
+};
+
+const getTargetId = async (page: Page, userId: string, databaseId: string, targetName: string) => {
+  let displayStart = 0;
+  while (true) {
+    const targetsPage = await getTargetsPage(page, userId, databaseId, displayStart);
+    const match = targetsPage.targets.find((target) => target.target_name === targetName);
+    if (match) {
+      return match.target_id;
+    }
+    displayStart += pageSize;
+    if (displayStart >= targetsPage.iTotalRecords) {
+      return undefined;
+    }
+    await delay(page, 1000);
+  }
 };
 
 const login = async (page: Page) => {
@@ -149,54 +171,117 @@ const createTarget = async (page: Page, databaseId: string, name: string, width:
   return response.text();
 };
 
-export const get = async (_req: Request, res: Response) => {
-  const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
-  try {
-    const { page, userId } = await authenticate(browser);
-    const databaseId = await getDatabaseId(page, userId, "banknotesReader");
-    if (!databaseId) {
-      throw new Error("Database not found: banknotesReader");
+const deleteTargets = async (page: Page, databaseId: string, databaseName: string, targetIds: string[]) => {
+  const response = await page.request.post(
+    "https://developer.vuforia.com/targetmanager/project/deleteDatabaseTargets",
+    {
+      multipart: {
+        device_target_listing: "device_target_listing",
+        project_id_device: databaseId,
+        typeDevice: "NON_CLOUD",
+        projectNameDevice: databaseName,
+        project_status: "",
+        TARGET_IDS: targetIds.map((targetId) => `${targetId}::`).join("")
+      }
     }
-    const targets = await getTargets(page, userId, databaseId);
-    res.json({ status: "ok", data: targets });
-  } catch (e) {
-    res.status(500);
-    res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
-  } finally {
-    await browser.close();
-  }
+  );
+  return response.text();
 };
 
-export const post = async (req: Request, res: Response) => {
-  const { name, width } = req.body || {};
-  if (!name) {
-    res.status(400);
-    res.json({ status: "error", message: "Missing name" });
-    return;
-  }
-  if (!width || isNaN(Number(width))) {
-    res.status(400);
-    res.json({ status: "error", message: "Missing or invalid width" });
-    return;
-  }
-  if (!req.file) {
-    res.status(400);
-    res.json({ status: "error", message: "Missing image" });
-    return;
-  }
-  const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
-  try {
-    const { page, userId } = await authenticate(browser);
-    const databaseId = await getDatabaseId(page, userId, "banknotesReader");
-    if (!databaseId) {
-      throw new Error("Database not found: banknotesReader");
+const vuforiaHandler = {
+  postParams,
+
+  get: async (_req: Request, res: Response) => {
+    const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
+    try {
+      const { page, userId } = await authenticate(browser);
+      const databaseId = await getDatabaseId(page, userId, "banknotesReader");
+      if (!databaseId) {
+        throw new Error("Database not found: banknotesReader");
+      }
+      const targets = await getTargets(page, userId, databaseId);
+      res.json({ status: "ok", data: targets });
+    } catch (e) {
+      res.status(500);
+      res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      await browser.close();
     }
-    const message = await createTarget(page, databaseId, name, Number(width), req.file);
-    res.json({ status: "ok", message });
-  } catch (e) {
-    res.status(500);
-    res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
-  } finally {
-    await browser.close();
+  },
+
+  post: async (req: Request, res: Response) => {
+    const { name, width } = req.body || {};
+    if (!name) {
+      res.status(400);
+      res.json({ status: "error", message: "Missing name" });
+      return;
+    }
+    if (!width || isNaN(Number(width))) {
+      res.status(400);
+      res.json({ status: "error", message: "Missing or invalid width" });
+      return;
+    }
+    if (!req.file) {
+      res.status(400);
+      res.json({ status: "error", message: "Missing image" });
+      return;
+    }
+    const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
+    try {
+      const { page, userId } = await authenticate(browser);
+      const databaseId = await getDatabaseId(page, userId, "banknotesReader");
+      if (!databaseId) {
+        throw new Error("Database not found: banknotesReader");
+      }
+      const message = await createTarget(page, databaseId, name, Number(width), req.file);
+      res.json({ status: "ok", message });
+    } catch (e) {
+      res.status(500);
+      res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      await browser.close();
+    }
+  },
+
+  delete: async (req: Request, res: Response) => {
+    const namesQuery = req.query.names;
+    const names = (Array.isArray(namesQuery) ? namesQuery : namesQuery ? [namesQuery] : []).map(String);
+    if (names.length === 0) {
+      res.status(400);
+      res.json({ status: "error", message: "Missing names" });
+      return;
+    }
+    const browser = await chromium.launch({ executablePath: chromeExecutablePath, headless: !vuforiaDebugMode });
+    try {
+      const databaseName = "banknotesReader";
+      const { page, userId } = await authenticate(browser);
+      const databaseId = await getDatabaseId(page, userId, databaseName);
+      if (!databaseId) {
+        throw new Error(`Database not found: ${databaseName}`);
+      }
+      const targetIds: string[] = [];
+      const notFound: string[] = [];
+      for (const name of names) {
+        const targetId = await getTargetId(page, userId, databaseId, name);
+        if (targetId) {
+          targetIds.push(targetId);
+        } else {
+          notFound.push(name);
+        }
+        await delay(page, 1000);
+      }
+      if (targetIds.length === 0) {
+        throw new Error(`Targets not found: ${notFound.join(", ")}`);
+      }
+      const message = await deleteTargets(page, databaseId, databaseName, targetIds);
+      res.json({ status: "ok", message, notFound });
+    } catch (e) {
+      res.status(500);
+      res.json({ status: "error", message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      await browser.close();
+    }
   }
-};
+} satisfies Handler;
+
+export default vuforiaHandler;
