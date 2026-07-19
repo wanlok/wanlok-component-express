@@ -8,6 +8,7 @@ import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
 import vuforiaHandler from "./handlers/vuforiaHandler";
+import vuforiaSyncHandler from "./handlers/vuforiaSyncHandler";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/screenshot", express.static(screenshotDirectoryPath));
 app.get("/health", health);
 app.get("/pdf", pdf);
 app.get("/vuforia", vuforiaHandler.get);
+app.get("/vuforia-sync", vuforiaSyncHandler.get);
 
 app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
