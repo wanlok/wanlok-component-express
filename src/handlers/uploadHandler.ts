@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import multer from "multer";
-import { githubFileDirectoryPath, fileUploadDirectoryPath } from "../common/config";
+import { githubFileDirectoryPath, fileUploadDirectoryPath } from "../utils/config";
 import { randomUUID } from "crypto";
-import { commit, getFileExtension, getMD5 } from "../common/FileUtils";
+import { commit, getFileExtension, getMD5 } from "../utils/FileUtils";
 
 interface FileInfo {
   id?: string;

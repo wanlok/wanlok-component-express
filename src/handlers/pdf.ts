@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import puppeteer, { Browser, Page, PDFOptions } from "puppeteer";
-import { browserOptions } from "../common/PuppeteerUtils";
+import { browserOptions } from "../utils/PuppeteerUtils";
 
 const pdfOptions: PDFOptions = {
   format: "A4",

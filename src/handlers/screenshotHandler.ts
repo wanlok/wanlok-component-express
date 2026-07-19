@@ -2,11 +2,11 @@ import { Request, Response } from "express";
 import fs from "fs";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import { browserOptions } from "../common/PuppeteerUtils";
-import { crop16by9, toImages } from "../common/PDFUtils";
-import { githubScreenshotDirectoryPath, screenshotDirectoryPath } from "../common/config";
+import { browserOptions } from "../utils/PuppeteerUtils";
+import { crop16by9, toImages } from "../utils/PDFUtils";
+import { githubScreenshotDirectoryPath, screenshotDirectoryPath } from "../utils/config";
 import { createHash } from "crypto";
-import { commit } from "../common/FileUtils";
+import { commit } from "../utils/FileUtils";
 
 puppeteer.use(StealthPlugin());
 
