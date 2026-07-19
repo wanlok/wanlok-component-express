@@ -25,6 +25,7 @@
     "multer": "^2.0.2",
     "p-queue": "^8.1.0",
     "pdfjs-dist": "^3.11.174",
+    "playwright": "^1.61.1",
     "puppeteer": "^24.16.2",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",

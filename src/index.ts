@@ -7,6 +7,7 @@ import { health } from "./handlers/healthHandler";
 import { pdf } from "./handlers/pdf";
 import { screenshot } from "./handlers/screenshotHandler";
 import { upload, uploadParams } from "./handlers/uploadHandler";
+import { vuforia } from "./handlers/vuforiaHandler";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/screenshot", express.static(screenshotDirectoryPath));
 
 app.get("/health", health);
 app.get("/pdf", pdf);
+app.get("/vuforia", vuforia);
 
 app.post("/save-screenshot", screenshot);
 app.post(`/upload`, uploadParams, upload);
